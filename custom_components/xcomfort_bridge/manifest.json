@@ -1,0 +1,13 @@
+{
+  "domain": "xcomfort_bridge",
+  "name": "Eaton xComfort Bridge",
+  "config_flow": true,
+  "documentation": "https://github.com/jankrib/ha-xcomfort-bridge",
+  "issue_tracker": "https://github.com/jankrib/ha-xcomfort-bridge/issues",
+  "requirements": ["xcomfort==0.0.7", "rx==3.0.1"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": ["@jankrib"]
+}
