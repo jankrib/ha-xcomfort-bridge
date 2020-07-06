@@ -43,7 +43,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     auth_key = entry.data.get("authkey")
 
     bridge = Bridge(ip_address, auth_key)
-    bridge.logger = lambda x: _LOGGER.warning(x)
+    # bridge.logger = lambda x: _LOGGER.warning(x)
     # hass.async_create_task(bridge.run())
     asyncio.create_task(bridge.run())
 
