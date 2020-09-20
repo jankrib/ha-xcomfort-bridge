@@ -58,7 +58,7 @@ class XComfortDevice(Entity):
 
         self._name = device.name
         self._state = None
-        self.unique_id = f"{DOMAIN}_{device.bridge.connection.device_id}_{device.device_id}"
+        self.unique_id = f"light_{device.bridge.connection.device_id}_{device.device_id}"
 
         self._device.state.subscribe(self._state_change)
 
