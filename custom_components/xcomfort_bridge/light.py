@@ -10,7 +10,7 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     SUPPORT_BRIGHTNESS,
     PLATFORM_SCHEMA,
-    Light,
+    LightEntity,
 )
 from homeassistant.helpers.entity import Entity
 from homeassistant.const import CONF_IP_ADDRESS
