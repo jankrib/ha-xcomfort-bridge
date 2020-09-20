@@ -59,7 +59,7 @@ class XComfortDevice(Entity):
         self._name = device.name
         self._state = None
         #self.unique_id = f"light_{device.bridge.connection.device_id}_{device.device_id}"
-
+        self._unique_id = f"light_{DOMAIN}_{device.bridge.connection.device_id}-{device.device_id}"
         self._device.state.subscribe(self._state_change)
 
     def _state_change(self, state):
@@ -79,6 +79,11 @@ class XComfortLight(XComfortDevice, LightEntity):
     def name(self):
         """Return the display name of this light."""
         return self._name
+
+    @property
+    def unique_id(self):
+        """Return the unique ID."""
+        return self._unique_id
 
     @property
     def should_poll(self) -> bool:
