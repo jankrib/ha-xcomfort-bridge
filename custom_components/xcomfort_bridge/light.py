@@ -72,7 +72,7 @@ class XComfortDevice(Entity):
             self.schedule_update_ha_state()
 
 
-class XComfortLight(XComfortDevice, Light):
+class XComfortLight(XComfortDevice, LightEntity):
     """Representation of an xComfort Light."""
 
     @property
