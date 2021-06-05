@@ -1,6 +1,7 @@
 {
   "domain": "xcomfort_bridge",
   "name": "Eaton xComfort Bridge",
+  "version": "0.0.12",
   "config_flow": true,
   "documentation": "https://github.com/jankrib/ha-xcomfort-bridge",
   "issue_tracker": "https://github.com/jankrib/ha-xcomfort-bridge/issues",
