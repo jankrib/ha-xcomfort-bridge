@@ -1,77 +1,56 @@
-"""The Eaton xComfort Bridge integration."""
+"""Support for XComfort Bridge."""
 import asyncio
 import logging
-import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_IP_ADDRESS,Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.const import (
-    CONF_IP_ADDRESS,
-    EVENT_HOMEASSISTANT_STOP,
-)
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
-from xcomfort import Bridge
+from .const import CONF_AUTH_KEY, CONF_IDENTIFIER, DOMAIN
+from .hub import XComfortHub
+
+PLATFORMS = [Platform.LIGHT, Platform.CLIMATE, Platform.SENSOR]
+#PLATFORMS = [Platform.CLIMATE]
+
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_IP_ADDRESS): cv.string,
-                vol.Required("authkey"): cv.string,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
 
-PLATFORMS = ["light"]
-
-
-async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Eaton xComfort Bridge component."""
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Boilerplate."""
+    hass.data.setdefault(DOMAIN, {})
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Eaton xComfort Bridge from a config entry."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Connects to bridge and loads devices."""
+    config = entry.data
+    identifier = str(config.get(CONF_IDENTIFIER))
+    ip = str(config.get(CONF_IP_ADDRESS))
+    auth_key = str(config.get(CONF_AUTH_KEY))
 
-    ip_address = entry.data.get(CONF_IP_ADDRESS)
-    auth_key = entry.data.get("authkey")
+    hub = XComfortHub(hass, identifier=identifier, ip=ip, auth_key=auth_key)
+    hub.start()
+    hass.data[DOMAIN][entry.entry_id] = hub
 
-    bridge = Bridge(ip_address, auth_key)
-    # bridge.logger = lambda x: _LOGGER.warning(x)
-    # hass.async_create_task(bridge.run())
-    asyncio.create_task(bridge.run())
+    await hub.load_devices()
 
-    if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = {}
-
-    hass.data[DOMAIN][entry.entry_id] = bridge
-
-    for component in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
-        )
-
+    hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+    
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Unload a config entry."""
-
-    bridge = hass.data[DOMAIN][entry.entry_id]
-
-    bridge.close()
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Disconnects from bridge and removes devices loaded."""
+    hub = XComfortHub.get_hub(hass, entry)
+    await hub.stop()
 
     unload_ok = all(
         await asyncio.gather(
             *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
-                for component in PLATFORMS
+                hass.config_entries.async_forward_entry_unload(entry, platform)
+                for platform in PLATFORMS
             ]
         )
     )

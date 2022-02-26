@@ -1,79 +1,99 @@
-"""Platform for light integration."""
+import asyncio
 import logging
+from math import ceil
 
-import voluptuous as vol
+from xcomfort.devices import Light
 
-import homeassistant.helpers.config_validation as cv
-
-# Import the device class from the component that you want to support
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     SUPPORT_BRIGHTNESS,
-    PLATFORM_SCHEMA,
     LightEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
-from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from xcomfort import Bridge, Light as XLight
-from .const import DOMAIN
-from math import ceil
+from .const import DOMAIN, VERBOSE
+from .hub import XComfortHub
 
 _LOGGER = logging.getLogger(__name__)
 
-# Validation of the user's configuration
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({})
+
+def log(msg: str):
+    if VERBOSE:
+        _LOGGER.warning(msg)
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Platform uses config entry setup."""
-    pass
+# PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+# 	vol.Required(CONF_IP_ADDRESS): cv.string,
+# 	vol.Required(CONF_AUTH_KEY): cv.string,
+# })
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Abode light devices."""
-    bridge = hass.data[DOMAIN][entry.entry_id]
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
 
-    if not isinstance(bridge, Bridge):
-        _LOGGER.error(f"Invalid bridge. Got {bridge} for {entry.entry_id}")
+    hub = XComfortHub.get_hub(hass, entry)
 
-    devices = await bridge.get_devices()
+    devices = hub.devices
 
-    lights = filter(lambda d: isinstance(d, XLight), devices.values())
-    lights = map(lambda d: XComfortLight(hass, bridge, d), lights)
-    lights = list(lights)
+    _LOGGER.info(f"Found {len(devices)} xcomfort devices")
 
+    lights = list()
+    for device in devices:
+        if isinstance(device,Light):
+            _LOGGER.info(f"Adding {device}")
+            light = HASSXComfortLight(hass, hub, device)
+            lights.append(light)
+
+    _LOGGER.info(f"Added {len(lights)} lights")
     async_add_entities(lights)
 
 
-class XComfortDevice(Entity):
-    """Representation of an xComfort Device."""
-
-    def __init__(self, hass, bridge: Bridge, device: XLight):
+class HASSXComfortLight(LightEntity):
+    def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Light):
         self.hass = hass
-        self._bridge = bridge
+        self.hub = hub
+
         self._device = device
-
-        # self.entity_id = f"light.d{device.device_id}"
-
         self._name = device.name
         self._state = None
-        #self.unique_id = f"light_{device.bridge.connection.device_id}_{device.device_id}"
-        self._unique_id = f"light_{DOMAIN}_{device.bridge.connection.device_id}-{device.device_id}"
-        self._device.state.subscribe(self._state_change)
+        self.device_id = device.device_id
+
+        # comp = hub.bridge.getComp(self._device._device["compId"])
+        # self.versionFW = comp["versionFW"]
+
+        self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
+
+    async def async_added_to_hass(self):
+        _LOGGER.warning(f"Added to hass {self._name} ")
+        if self._device.state is None:
+            _LOGGER.warning(f"State is null for {self._name}")
+        else:
+            self._device.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
-        update = self._state is not None
         self._state = state
 
-        _LOGGER.warning(f"_state_change : {state}")
+        should_update = self._state is not None
 
-        if update:
+        log(f"State changed {self._name} : {state}")
+
+        if should_update:
             self.schedule_update_ha_state()
 
-
-class XComfortLight(XComfortDevice, LightEntity):
-    """Representation of an xComfort Light."""
+    @property
+    def device_info(self):
+        return {
+            "identifiers": {(DOMAIN, self.unique_id)},
+            "name": self.name,
+            "manufacturer": "Eaton",
+            "model": "XXX",
+            "sw_version": "Unknown",
+            "via_device": self.hub.hub_id,
+        }
 
     @property
     def name(self):
@@ -111,27 +131,30 @@ class XComfortLight(XComfortDevice, LightEntity):
         return 0
 
     async def async_turn_on(self, **kwargs):
-        """Instruct the light to turn on."""
+        log(f"async_turn_on {self._name} : {kwargs}")
         if ATTR_BRIGHTNESS in kwargs and self._device.dimmable:
-            # Convert Home Assistant brightness (0-255) to Abode brightness (0-99)
-            # If 100 is sent to Abode, response is 99 causing an error
-            await self._device.dimm(ceil(kwargs[ATTR_BRIGHTNESS] * 99 / 255.0))
+            br = ceil(kwargs[ATTR_BRIGHTNESS] * 99 / 255.0)
+            log(f"async_turn_on br {self._name} : {br}")
+            await self._device.dimm(br)
+            self._state.dimmvalue = br
+            self.schedule_update_ha_state()
             return
 
         switch_task = self._device.switch(True)
+        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
+        await switch_task
+
         self._state.switch = True
         self.schedule_update_ha_state()
 
+    async def async_turn_off(self, **kwargs):
+        log(f"async_turn_off {self._name} : {kwargs}")
+        switch_task = self._device.switch(False)
+        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
         await switch_task
 
-    async def async_turn_off(self, **kwargs):
-        """Instruct the light to turn off."""
-        switch_task = self._device.switch(False)
         self._state.switch = False
         self.schedule_update_ha_state()
 
-        await switch_task
-
     def update(self):
         pass
-

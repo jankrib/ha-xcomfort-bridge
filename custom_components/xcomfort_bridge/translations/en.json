@@ -6,7 +6,8 @@
         "title": "Eaton xComfort Bridge",
         "data": {
           "ip_address": "Ip Address",
-          "authkey": "AuthKey"
+          "auth_key": "AuthKey",
+		  "identifier": "Identifier"
         }
       }
     },

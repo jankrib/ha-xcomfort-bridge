@@ -1,43 +1,65 @@
 """Config flow for Eaton xComfort Bridge."""
 import logging
-import asyncio
+from typing import List, Optional
 
-from homeassistant import config_entries, data_entry_flow
-from homeassistant.helpers import config_entry_flow
+from aiohttp import ClientConnectionError
 import voluptuous as vol
-from collections import OrderedDict
-from homeassistant.const import CONF_IP_ADDRESS
 
-from .const import DOMAIN
+from homeassistant import config_entries
+from homeassistant.const import (
+    CONF_IP_ADDRESS,
+    CONF_MONITORED_CONDITIONS,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+)
+from homeassistant.core import callback
+from homeassistant.helpers import aiohttp_client, config_validation as cv
+from homeassistant.helpers.typing import ConfigType
+
+from .const import CONF_AUTH_KEY, CONF_IDENTIFIER, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class XComfortBridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    def __init__(self):
-        """Initialize."""
-        self.data_schema = {
-            vol.Required(CONF_IP_ADDRESS): str,
-            vol.Required("authkey"): str,
-        }
+@config_entries.HANDLERS.register(DOMAIN)
+class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
 
-    async def async_step_user(self, user_input):
-        """Handle a flow initialized by the user."""
+    VERSION = 1
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
+
+    def __init__(self):
+        self.data = {}
+
+    async def async_step_user(self, user_input=None):
+
+        entries = self.hass.config_entries.async_entries(DOMAIN)
+        if entries:
+            return self.async_abort(reason="already_setup")
+
+        errors = {}
 
         if user_input is not None:
-            # TODO Validate user input
+
+            self.data[CONF_IP_ADDRESS] = user_input[CONF_IP_ADDRESS]
+            self.data[CONF_AUTH_KEY] = user_input[CONF_AUTH_KEY]
+            self.data[CONF_IDENTIFIER] = user_input.get(CONF_IDENTIFIER)
+
+            await self.async_set_unique_id(self.data[CONF_IP_ADDRESS])
 
             return self.async_create_entry(
                 title=f"{user_input[CONF_IP_ADDRESS]}",
-                data={
-                    CONF_IP_ADDRESS: user_input[CONF_IP_ADDRESS],
-                    "authkey": user_input["authkey"],
-                },
+                data=user_input,
             )
 
-        data_schema = OrderedDict()
-        data_schema[vol.Required(CONF_IP_ADDRESS)] = str
-        data_schema[vol.Required("authkey")] = str
+        data_schema = {
+            vol.Required(CONF_IP_ADDRESS): str,
+            vol.Required(CONF_AUTH_KEY): str,
+            vol.Optional(CONF_IDENTIFIER, default=None): str,
+        }
 
-        return self.async_show_form(step_id="user", data_schema=vol.Schema(data_schema))
+        return self.async_show_form(
+            step_id="user", data_schema=vol.Schema(data_schema), errors=errors
+        )
 
+    async def async_step_import(self, import_data: dict):
+        return await self.async_step_user(import_data)
