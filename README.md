@@ -1,6 +1,6 @@
 # xcomfort-bridge-hass
 
-Eaton xComfort integration with Home Assistant
+Eaton xComfort integration with Home Assistant. Note that you need the **xComfort Bridge** for this to work.
 
 ## Installation
 
