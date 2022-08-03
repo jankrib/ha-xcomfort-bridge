@@ -8,7 +8,6 @@ from typing import List
 
 from xcomfort.bridge import Bridge, State
 from xcomfort.devices import Light, LightState
-from .rctouch import RcTouch, RcTouchState
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
