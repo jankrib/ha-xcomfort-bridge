@@ -11,7 +11,10 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from .rctouch import RcTouch
+
+from xcomfort.bridge import Bridge, Room
+from xcomfort.devices import RcTouch
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (  
     ENERGY_KILO_WATT_HOUR,  
@@ -28,16 +31,25 @@ async def async_setup_entry(
 ) -> None:
     hub = XComfortHub.get_hub(hass, entry)
 
+    rooms = hub.rooms
     devices = hub.devices
 
+    _LOGGER.info(f"Found {len(rooms)} xcomfort rooms")
     _LOGGER.info(f"Found {len(devices)} xcomfort devices")
 
     sensors= list()
+    for room in rooms:
+        if room.state.value.power is not None:
+            _LOGGER.info(f"Adding power sensor for room {room}")
+            sensors.append(XComfortPowerSensor(room))
+
+        if room.state.value.temperature is not None:
+            _LOGGER.info(f"Adding temperature sensor for room {room}")
+            sensors.append(XComfortEnergySensor(room))
+
     for device in devices:
-        if isinstance(device,RcTouch):
-            _LOGGER.info(f"Adding {device}")            
-            sensors.append(XComfortPowerSensor(device))
-            sensors.append(XComfortEnergySensor(device))
+        if isinstance(device, RcTouch):
+            _LOGGER.info(f"Adding humidity sensor for device {device}")
             sensors.append(XComfortHumiditySensor(device))
 
     _LOGGER.info(f"Added {len(sensors)} rc touch units")
@@ -45,16 +57,16 @@ async def async_setup_entry(
     return
 
 class XComfortPowerSensor(SensorEntity):
-    def __init__(self, device:RcTouch):
+    def __init__(self, room:Room):
         self._attr_device_class = SensorEntityDescription(
             key="current_consumption",
             device_class=SensorDeviceClass.ENERGY,
             native_unit_of_measurement=POWER_WATT,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current consumption",)
-        self._device = device
-        self._attr_name = self._device.name
-        self._attr_unique_id = f"energy_{self._device.name}_{self._device.device_id}"
+        self._room = room
+        self._attr_name = self._room.name
+        self._attr_unique_id = f"energy_{self._room.room_id}"
         self._state = None
         self._device.state.subscribe(lambda state: self._state_change(state))
 
@@ -82,18 +94,18 @@ class XComfortEnergySensor(SensorEntity):
 
     _attr_state_class = SensorStateClass.TOTAL
     
-    def __init__(self, device:RcTouch):
+    def __init__(self, room:Room):
         self._attr_device_class = SensorEntityDescription(
             key="energy_used",
             device_class=SensorDeviceClass.ENERGY,
             native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
             state_class=SensorStateClass.TOTAL_INCREASING,
             name="Energy consumption",)
-        self._device = device
-        self._attr_name = self._device.name
-        self._attr_unique_id = f"energy_kwh_{self._device.name}_{self._device.device_id}"
+        self._room = room
+        self._attr_name = self._room.name
+        self._attr_unique_id = f"energy_kwh_{self._room.room_id}"
         self._state = None
-        self._device.state.subscribe(lambda state: self._state_change(state))
+        self._room.state.subscribe(lambda state: self._state_change(state))
         self._updateTime = time.time()        
         self._consumption = 0
 
@@ -155,4 +167,4 @@ class XComfortHumiditySensor(SensorEntity):
 
     @property
     def native_value(self):
-        return self._state.current_humidity
+        return self._state.humidity

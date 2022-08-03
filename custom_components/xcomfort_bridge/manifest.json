@@ -6,7 +6,7 @@
   "documentation": "https://github.com/jankrib/ha-xcomfort-bridge",
   "issue_tracker": "https://github.com/jankrib/ha-xcomfort-bridge/issues",
   "requirements": [
-    "xcomfort==0.0.16",
+    "xcomfort==0.0.17",
     "rx==3.0.1",
     "pycryptodome==3.15.0"
   ],

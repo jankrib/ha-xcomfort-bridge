@@ -54,7 +54,7 @@ class XComfortBridgeConfigFlow(config_entries.ConfigFlow):
         data_schema = {
             vol.Required(CONF_IP_ADDRESS): str,
             vol.Required(CONF_AUTH_KEY): str,
-            vol.Optional(CONF_IDENTIFIER, default=None): str,
+            vol.Optional(CONF_IDENTIFIER, default="XComfort Bridge"): str,
         }
 
         return self.async_show_form(
