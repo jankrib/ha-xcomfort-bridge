@@ -11,7 +11,6 @@ from .const import CONF_AUTH_KEY, CONF_IDENTIFIER, DOMAIN
 from .hub import XComfortHub
 
 PLATFORMS = [Platform.LIGHT, Platform.CLIMATE, Platform.SENSOR]
-#PLATFORMS = [Platform.CLIMATE]
 
 
 _LOGGER = logging.getLogger(__name__)
