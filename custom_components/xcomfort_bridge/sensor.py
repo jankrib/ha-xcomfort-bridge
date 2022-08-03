@@ -40,11 +40,11 @@ async def async_setup_entry(
     sensors= list()
     for room in rooms:
         if room.state.value.power is not None:
-            _LOGGER.info(f"Adding power sensor for room {room}")
+            _LOGGER.info(f"Adding power sensor for room {room.name}")
             sensors.append(XComfortPowerSensor(room))
 
         if room.state.value.temperature is not None:
-            _LOGGER.info(f"Adding temperature sensor for room {room}")
+            _LOGGER.info(f"Adding temperature sensor for room {room.name}")
             sensors.append(XComfortEnergySensor(room))
 
     for device in devices:
@@ -68,7 +68,7 @@ class XComfortPowerSensor(SensorEntity):
         self._attr_name = self._room.name
         self._attr_unique_id = f"energy_{self._room.room_id}"
         self._state = None
-        self._device.state.subscribe(lambda state: self._state_change(state))
+        self._room.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
 

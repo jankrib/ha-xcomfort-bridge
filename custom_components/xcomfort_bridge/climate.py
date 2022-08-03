@@ -32,7 +32,7 @@ from homeassistant.const import (
 # }
 
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE #| SUPPORT_PRESET_MODE
 
 from .const import DOMAIN, VERBOSE
 
@@ -56,7 +56,7 @@ async def async_setup_entry(
     rcts= list()
     for room in rooms:
         if room.state.value.setpoint is not None:
-            _LOGGER.info(f"Adding {room}")
+            #_LOGGER.info(f"Adding {room}")
             rct = HASSXComfortRcTouch(hass, hub, room)
             rcts.append(rct)
 
@@ -155,7 +155,7 @@ class HASSXComfortRcTouch(ClimateEntity):
     @property
     def target_temperature(self):
         """Returns the setpoint from RC touch, e.g. target_temperature"""
-        return self.setpoint
+        return self._state.setpoint
 
     @property
     def preset_modes(self):
@@ -163,12 +163,13 @@ class HASSXComfortRcTouch(ClimateEntity):
 
     @property
     def preset_mode(self):
-        if self._state.mode == 0:
+        mode = self._state.raw.get("mode")
+        if mode == 0:
             return 'Protection'
-        if self._state.mode == 1:
+        if mode == 1:
             return 'Protection'
-        if self._state.mode == 2:
+        if mode == 2:
             return PRESET_ECO
-        if self._state.mode == 3:
+        if mode == 3:
             return PRESET_COMFORT
 
