@@ -81,10 +81,10 @@ class HASSXComfortRcTouch(ClimateEntity):
     
     async def async_added_to_hass(self):
         _LOGGER.warning(f"Added to hass {self._name} ")
-        if self._device.state is None:
+        if self._room.state is None:
             _LOGGER.warning(f"State is null for {self._name}")
         else:
-            self._device.state.subscribe(lambda state: self._state_change(state))
+            self._room.state.subscribe(lambda state: self._state_change(state))
 
     def _state_change(self, state):
         self._state = state        
