@@ -2,12 +2,12 @@ import asyncio
 import logging
 from math import ceil
 
-from xcomfort.devices import Light
+from xcomfort.devices import Shade
 
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    SUPPORT_BRIGHTNESS,
-    LightEntity,
+from homeassistant.components.cover import (
+    CoverEntityFeature,
+    DEVICE_CLASS_SHADE,
+    CoverEntity,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -41,19 +41,19 @@ async def async_setup_entry(
 
     _LOGGER.info(f"Found {len(devices)} xcomfort devices")
 
-    lights = list()
+    shades = list()
     for device in devices:
-        if isinstance(device,Light):
+        if isinstance(device, Shade):
             _LOGGER.info(f"Adding {device}")
-            light = HASSXComfortLight(hass, hub, device)
-            lights.append(light)
+            shade = HASSXComfortShade(hass, hub, device)
+            shades.append(shade)
 
-    _LOGGER.info(f"Added {len(lights)} lights")
-    async_add_entities(lights)
+    _LOGGER.info(f"Added {len(shades)} shades")
+    async_add_entities(shades)
 
 
-class HASSXComfortLight(LightEntity):
-    def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Light):
+class HASSXComfortShade(CoverEntity):
+    def __init__(self, hass: HomeAssistant, hub: XComfortHub, device: Shade):
         self.hass = hass
         self.hub = hub
 
@@ -62,10 +62,9 @@ class HASSXComfortLight(LightEntity):
         self._state = None
         self.device_id = device.device_id
 
-        # comp = hub.bridge.getComp(self._device._device["compId"])
-        # self.versionFW = comp["versionFW"]
+        self.device_class = DEVICE_CLASS_SHADE
 
-        self._unique_id = f"light_{DOMAIN}_{hub.identifier}-{device.device_id}"
+        self._unique_id = f"shade_{DOMAIN}_{hub.identifier}-{device.device_id}"
 
     async def async_added_to_hass(self):
         log(f"Added to hass {self._name} ")
@@ -110,51 +109,21 @@ class HASSXComfortLight(LightEntity):
         return False
 
     @property
-    def brightness(self):
-        """Return the brightness of the light.
-
-        This method is optional. Removing it indicates to Home Assistant
-        that brightness is not supported for this light.
-        """
-        return int(255.0 * self._state.dimmvalue / 99.0)
-
-    @property
-    def is_on(self):
-        """Return true if light is on."""
-        return self._state.switch
-
-    @property
     def supported_features(self):
         """Flag supported features."""
-        if self._device.dimmable:
-            return SUPPORT_BRIGHTNESS
-        return 0
+        return CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
 
-    async def async_turn_on(self, **kwargs):
-        log(f"async_turn_on {self._name} : {kwargs}")
-        if ATTR_BRIGHTNESS in kwargs and self._device.dimmable:
-            br = ceil(kwargs[ATTR_BRIGHTNESS] * 99 / 255.0)
-            log(f"async_turn_on br {self._name} : {br}")
-            await self._device.dimm(br)
-            self._state.dimmvalue = br
-            self.schedule_update_ha_state()
-            return
+    async def async_open_cover(self, **kwargs):
+        """Open the cover."""
+        await self._device.move_up()
+    
+    async def async_close_cover(self, **kwargs):
+        """Close cover."""
+        await self._device.move_down()
 
-        switch_task = self._device.switch(True)
-        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
-        await switch_task
-
-        self._state.switch = True
-        self.schedule_update_ha_state()
-
-    async def async_turn_off(self, **kwargs):
-        log(f"async_turn_off {self._name} : {kwargs}")
-        switch_task = self._device.switch(False)
-        # switch_task = self.hub.bridge.switch_device(self.device_id,True)
-        await switch_task
-
-        self._state.switch = False
-        self.schedule_update_ha_state()
+    async def async_stop_cover(self, **kwargs):
+        """Stop the cover."""
+        await self._device.move_stop()
 
     def update(self):
         pass
