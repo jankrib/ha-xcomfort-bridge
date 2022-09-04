@@ -41,7 +41,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def log(msg: str):
     if VERBOSE:
-        _LOGGER.warning(msg)
+        _LOGGER.info(msg)
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -80,9 +80,9 @@ class HASSXComfortRcTouch(ClimateEntity):
         self._unique_id = f"climate_{DOMAIN}_{hub.identifier}-{room.room_id}"
     
     async def async_added_to_hass(self):
-        _LOGGER.warning(f"Added to hass {self._name} ")
+        log(f"Added to hass {self._name} ")
         if self._room.state is None:
-            _LOGGER.warning(f"State is null for {self._name}")
+            log(f"State is null for {self._name}")
         else:
             self._room.state.subscribe(lambda state: self._state_change(state))
 
