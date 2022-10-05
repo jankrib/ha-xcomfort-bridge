@@ -2,9 +2,11 @@
 
 Eaton xComfort integration with Home Assistant. Note that you need the **xComfort Bridge** for this to work.
 
+Developers, if you want to debug this, look at the [instructions found here](Debug.md)
+
 ## Installation
 
-**Step 1:** Clone or download this repository, then copy all the files and subfolders in `custom_components/xcomfort_bridge` to your homeassistant install directory, 
+**Step 1:** Clone or download this repository, then copy all the files and subfolders in `custom_components/xcomfort_bridge` to your homeassistant install directory,
 in the subfolder `config/custom_components/xcomfort_bridge`.  If done correct, your folder structure should look something like this:
 
 ![Folder structure](doc/images/folders.png)
