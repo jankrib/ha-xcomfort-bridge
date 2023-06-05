@@ -5,6 +5,7 @@ from math import ceil
 from xcomfort.devices import Shade
 
 from homeassistant.components.cover import (
+    ATTR_POSITION,
     CoverEntityFeature,
     DEVICE_CLASS_SHADE,
     CoverEntity,
@@ -119,7 +120,10 @@ class HASSXComfortShade(CoverEntity):
     @property
     def supported_features(self):
         """Flag supported features."""
-        return CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+        supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
+        if self._device.supports_go_to:
+            supported_features |= CoverEntityFeature.SET_POSITION
+        return supported_features
 
     async def async_open_cover(self, **kwargs):
         """Open the cover."""
@@ -135,3 +139,18 @@ class HASSXComfortShade(CoverEntity):
 
     def update(self):
         pass
+
+    @property
+    def current_cover_position(self) -> int | None:
+        if self._state:
+            # xcomfort interprets 90% to be almost fully closed,
+            # while HASS UI makes 90% look almost open, so we
+            # invert.
+            return 100 - self._state.position
+
+    async def async_set_cover_position(self, **kwargs) -> None:
+        """Move the cover to a specific position."""
+        if (position := kwargs.get(ATTR_POSITION)) is not None:
+            # See above comment
+            position = 100 - position
+            await self._device.move_to_position(position)
