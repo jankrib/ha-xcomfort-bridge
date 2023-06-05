@@ -1,4 +1,4 @@
-"""Support for mill wifi-enabled home heaters."""
+"""Support for Xcomfort sensors."""
 from __future__ import annotations
 
 import time
@@ -20,8 +20,8 @@ from xcomfort.devices import RcTouch
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ENERGY_KILO_WATT_HOUR,
+    ENERGY_WATT_HOUR,
     PERCENTAGE,
-    POWER_WATT,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -68,7 +68,7 @@ class XComfortPowerSensor(SensorEntity):
         self._attr_device_class = SensorEntityDescription(
             key="current_consumption",
             device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=POWER_WATT,
+            native_unit_of_measurement=ENERGY_WATT_HOUR,
             state_class=SensorStateClass.MEASUREMENT,
             name="Current consumption",
         )
@@ -92,7 +92,7 @@ class XComfortPowerSensor(SensorEntity):
 
     @property
     def native_unit_of_measurement(self):
-        return POWER_WATT
+        return ENERGY_WATT_HOUR
 
     @property
     def native_value(self):
@@ -160,8 +160,8 @@ class XComfortHumiditySensor(SensorEntity):
     def __init__(self, device: RcTouch):
         self._attr_device_class = SensorEntityDescription(
             key="humidity",
-            device_class=SensorDeviceClass.ENERGY,
-            native_unit_of_measurement=POWER_WATT,
+            device_class=SensorDeviceClass.HUMIDITY,
+            native_unit_of_measurement=PERCENTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             name="Humidity",
         )
