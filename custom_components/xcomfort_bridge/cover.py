@@ -62,9 +62,11 @@ class HASSXComfortShade(CoverEntity):
         self._state = None
         self.device_id = device.device_id
 
-        self.device_class = DEVICE_CLASS_SHADE
-
         self._unique_id = f"shade_{DOMAIN}_{hub.identifier}-{device.device_id}"
+
+    @property
+    def device_class(self):
+        return DEVICE_CLASS_SHADE
 
     async def async_added_to_hass(self):
         log(f"Added to hass {self._name} ")
@@ -84,6 +86,12 @@ class HASSXComfortShade(CoverEntity):
             self.schedule_update_ha_state()
 
     @property
+    def is_closed(self) -> bool | None:
+        if not self._state:
+            return None
+        return self._state.is_closed
+
+    @property
     def device_info(self):
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
@@ -96,7 +104,7 @@ class HASSXComfortShade(CoverEntity):
 
     @property
     def name(self):
-        """Return the display name of this light."""
+        """Return the display name of this cover."""
         return self._name
 
     @property
