@@ -143,10 +143,13 @@ class HASSXComfortShade(CoverEntity):
     @property
     def current_cover_position(self) -> int | None:
         if self._state:
+            if self._state.position is None:
+                return None  # Return None if position is NoneType
             # xcomfort interprets 90% to be almost fully closed,
             # while HASS UI makes 90% look almost open, so we
             # invert.
             return 100 - self._state.position
+        return None  # Return None if _state is falsy or does not exist
 
     async def async_set_cover_position(self, **kwargs) -> None:
         """Move the cover to a specific position."""
